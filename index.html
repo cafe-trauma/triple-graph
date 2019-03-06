@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<head>
 <meta charset="utf-8">
 <style>
 
@@ -14,155 +15,195 @@
 
 svg {
   width: 99vw;
-  height: 90vh;
+  height: 85vh;
 }
 
+.dataset-button {
+  width: 10vw;
+  font-size: 25px;
+  margin-left: 1em;
+}
+
+#dataset-picker {
+  display: flex;
+  align-items: center;
+}
+
+#dataset-current {
+  text-transform: capitalize;
+}
 </style>
+</head>
+<body>
+<div id="dataset-picker"><h2 id="dataset-current">trauma center</h2></div>
 <svg width="500" height="500"></svg>
 <h3 id="show_uri"></h3>
 <h3 id="show_label"></h3>
 <script src="https://d3js.org/d3.v4.min.js"></script>
 <script>
-d3.json("system.json", function(error, graph){
-  //create somewhere to put the force directed graph
-  var svg = d3.select("svg"),
-      width = +svg.attr("width"),
-      height = +svg.attr("height");
+var force_graph = function(file_name){
+  d3.json(file_name, function(error, graph){
+    //create somewhere to put the force directed graph
+    var svg = d3.select("svg"),
+        width = +svg.attr("width"),
+        height = +svg.attr("height");
 
-  var radius = 15;
-  //set up the simulation and add forces
-  var simulation = d3.forceSimulation()
-  					.nodes(graph.nodes);
+    var radius = 15;
+    //set up the simulation and add forces
+    var simulation = d3.forceSimulation()
+    					.nodes(graph.nodes);
 
-  var link_force =  d3.forceLink(graph.links)
-                          .id(function(d) { return d.uri; });
+    var link_force =  d3.forceLink(graph.links)
+                            .id(function(d) { return d.uri; });
 
-  var charge_force = d3.forceManyBody()
-      .strength(-100);
+    var charge_force = d3.forceManyBody()
+        .strength(-100);
 
-  var center_force = d3.forceCenter(width / 2, height / 2);
+    var center_force = d3.forceCenter(width / 2, height / 2);
 
-  simulation
-      .force("charge_force", charge_force)
-      .force("center_force", center_force)
-      .force("links",link_force)
-   ;
-
-
-  //add tick instructions:
-  simulation.on("tick", tickActions );
-
-  //add encompassing group for the zoom
-  var g = svg.append("g")
-      .attr("class", "everything");
-
-  //draw lines for the links
-  var link = g.append("g")
-      .attr("class", "links")
-      .selectAll("line")
-      .data(graph.links)
-      .enter().append("line")
-      .attr("stroke-width", 2)
-      .style("stroke", linkColour);
-
-  //draw circles for the nodes
-  var node = g.append("g")
-          .attr("class", "nodes")
-          .selectAll("circle")
-          .data(graph.nodes)
-          .enter()
-          .append("circle")
-          .attr("r", radius)
-          .attr("fill", circleColour)
-          .on("mouseover", handleMouseOver)
-          .on("mouseout", handleMouseOut);
-
-  function handleMouseOver(d, i){
-    document.getElementById("show_uri").innerText = d.uri;
-    document.getElementById("show_label").innerText = d.label;
-    d3.select(this).attr("r", radius * 2);
-  }
-
-  function handleMouseOut(d, i){
-    d3.select(this).attr("r", radius);
-  }
-
-  //add drag capabilities
-  var drag_handler = d3.drag()
-  	.on("start", drag_start)
-  	.on("drag", drag_drag)
-  	.on("end", drag_end);
-
-  drag_handler(node);
+    simulation
+        .force("charge_force", charge_force)
+        .force("center_force", center_force)
+        .force("links",link_force)
+     ;
 
 
-  //add zoom capabilities
-  var zoom_handler = d3.zoom()
-      .on("zoom", zoom_actions);
+    //add tick instructions:
+    simulation.on("tick", tickActions );
 
-  zoom_handler(svg);
+    //add encompassing group for the zoom
+    var g = svg.append("g")
+        .attr("class", "everything");
+
+    //draw lines for the links
+    var link = g.append("g")
+        .attr("class", "links")
+        .selectAll("line")
+        .data(graph.links)
+        .enter().append("line")
+        .attr("stroke-width", 2)
+        .style("stroke", linkColour);
 
 
-  /** Functions **/
+    //draw circles for the nodes
+    var node = g.append("g")
+            .attr("class", "nodes")
+            .selectAll("circle")
+            .data(graph.nodes)
+            .enter()
+            .append("circle")
+            .attr("r", radius)
+            .attr("fill", circleColour)
+            .on("mouseover", handleMouseOver)
+            .on("mouseout", handleMouseOut);
 
-  //Function to choose what color circle we have
-  //Let's return blue for males and red for females
-  function circleColour(d){
-  	if(d.type == "INSTANCE"){
-  		return "blue";
-  	} else {
-  		return "orange";
-  	}
-  }
+    function handleMouseOver(d, i){
+      document.getElementById("show_uri").innerText = "URI => " + d.uri;
+      document.getElementById("show_label").innerText = "Label => " + d.label;
+      d3.select(this).attr("r", radius * 2);
+    }
 
-  //Function to choose the line colour and thickness
-  //If the link type is "A" return green
-  //If the link type is "E" return red
-  function linkColour(d){
-  	if(d.type == "A"){
-  		return "green";
-  	} else {
-  		return "red";
-  	}
-  }
+    function handleMouseOut(d, i){
+      d3.select(this).attr("r", radius);
+    }
 
-  //Drag functions
-  //d is the node
-  function drag_start(d) {
-   if (!d3.event.active) simulation.alphaTarget(0.3).restart();
-      d.fx = d.x;
-      d.fy = d.y;
-  }
+    //add drag capabilities
+    var drag_handler = d3.drag()
+    	.on("start", drag_start)
+    	.on("drag", drag_drag)
+    	.on("end", drag_end);
 
-  //make sure you can't drag the circle outside the box
-  function drag_drag(d) {
-    d.fx = d3.event.x;
-    d.fy = d3.event.y;
-  }
+    drag_handler(node);
 
-  function drag_end(d) {
-    if (!d3.event.active) simulation.alphaTarget(0);
-    d.fx = null;
-    d.fy = null;
-  }
 
-  //Zoom functions
-  function zoom_actions(){
-      g.attr("transform", d3.event.transform)
-  }
+    //add zoom capabilities
+    var zoom_handler = d3.zoom()
+        .on("zoom", zoom_actions);
 
-  function tickActions() {
-      //update circle positions each tick of the simulation
-         node
-          .attr("cx", function(d) { return d.x; })
-          .attr("cy", function(d) { return d.y; });
+    var initial_zoom = d3.zoomIdentity.translate(width, height).scale(.3);
 
-      //update link positions
-      link
-          .attr("x1", function(d) { return d.source.x; })
-          .attr("y1", function(d) { return d.source.y; })
-          .attr("x2", function(d) { return d.target.x; })
-          .attr("y2", function(d) { return d.target.y; });
-  }
-})
+    svg.call(zoom_handler)
+       .call(zoom_handler.transform, initial_zoom);
+
+
+    /** Functions **/
+
+    //Function to choose what color circle we have
+    //Let's return blue for males and red for females
+    function circleColour(d){
+    	if(d.type == "INSTANCE"){
+    		return "blue";
+    	} else {
+    		return "orange";
+    	}
+    }
+
+    //Function to choose the line colour and thickness
+    //If the link type is "A" return green
+    //If the link type is "E" return red
+    function linkColour(d){
+    	if(d.type == "A"){
+    		return "green";
+    	} else {
+    		return "red";
+    	}
+    }
+
+    //Drag functions
+    //d is the node
+    function drag_start(d) {
+     if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+    }
+
+    //make sure you can't drag the circle outside the box
+    function drag_drag(d) {
+      d.fx = d3.event.x;
+      d.fy = d3.event.y;
+    }
+
+    function drag_end(d) {
+      if (!d3.event.active) simulation.alphaTarget(0);
+      d.fx = null;
+      d.fy = null;
+    }
+
+    //Zoom functions
+    function zoom_actions(){
+        g.attr("transform", d3.event.transform);
+    }
+
+    function tickActions() {
+        //update circle positions each tick of the simulation
+           node
+            .attr("cx", function(d) { return d.x; })
+            .attr("cy", function(d) { return d.y; });
+
+        //update link positions
+        link
+            .attr("x1", function(d) { return d.source.x; })
+            .attr("y1", function(d) { return d.source.y; })
+            .attr("x2", function(d) { return d.target.x; })
+            .attr("y2", function(d) { return d.target.y; });
+    }
+  });
+};
+var datasets = ["center", "system"]
+var datasetpicker = d3.select("#dataset-picker").selectAll(".dataset-button")
+  .data(datasets);
+
+datasetpicker.enter()
+  .append("input")
+  .attr("value", function(d){ return d })
+  .attr("type", "button")
+  .attr("class", "dataset-button")
+  .on("click", function(d) {
+    document.getElementById("dataset-current").innerText = "Trauma " + d;
+    d3.selectAll("svg > *").remove();
+    force_graph(d + ".json");
+  });
+force_graph("center.json");
 </script>
+</body>
+</html>

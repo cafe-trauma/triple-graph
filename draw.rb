@@ -85,7 +85,7 @@ query = <<SQL
 select subject, predicate, obj, question_id from questionnaire_statement
 join questionnaire_question on question_id = questionnaire_question.id
 join questionnaire_category on category_id = questionnaire_category.id
-where questionnaire = 'system'
+where questionnaire = 'center'
 SQL
 
 db_statements = DB[query].to_hash_groups(:question_id)
@@ -128,7 +128,7 @@ json["links"] = []
 end
 @statements.each do |s|
   json["links"] << {:source => s.subject.print, :target => s.object.print, :type => "A"}
-  json["nodes"] << {:uri => s.subject.print, :type => "ANON", :label => s.subject.print} if s.subject.is_a?(Anon)
-  json["nodes"] << {:uri => s.object.print, :type => "ANON", :label => s.object.print} if s.object.is_a?(Anon)
+  json["nodes"] << {:uri => s.subject.print, :type => "ANON"} if s.subject.is_a?(Anon)
+  json["nodes"] << {:uri => s.object.print, :type => "ANON"} if s.object.is_a?(Anon)
 end
-File.write("system.json", JSON.generate(json))
+File.write("center.json", JSON.generate(json))

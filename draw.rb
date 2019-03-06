@@ -7,6 +7,9 @@ require 'json'
 @graph = RDF::Repository.load('merged.owl')
 DB = Sequel.connect('postgres://localhost/cafe')
 
+questionnaire = ARGV[0] unless ARGV.empty?
+questionnaire ||= 'center'
+
 def find_label(uri, graph)
   solution = RDF::Query.execute(graph) do
     pattern [RDF::URI.new(uri), RDF::RDFS.label, :name]
@@ -85,7 +88,7 @@ query = <<SQL
 select subject, predicate, obj, question_id from questionnaire_statement
 join questionnaire_question on question_id = questionnaire_question.id
 join questionnaire_category on category_id = questionnaire_category.id
-where questionnaire = 'center'
+where questionnaire = '#{questionnaire}'
 SQL
 
 db_statements = DB[query].to_hash_groups(:question_id)
@@ -118,7 +121,7 @@ graph [splines=true, nodesep=.5, ranksep=0, overlap=false]
 }
 EOS
 
-File.write("graph.dot", dot)
+File.write("#{questionnaire}.dot", dot)
 
 json = {}
 json["nodes"] = []
@@ -131,4 +134,4 @@ end
   json["nodes"] << {:uri => s.subject.print, :type => "ANON"} if s.subject.is_a?(Anon)
   json["nodes"] << {:uri => s.object.print, :type => "ANON"} if s.object.is_a?(Anon)
 end
-File.write("center.json", JSON.generate(json))
+File.write("#{questionnaire}.json", JSON.generate(json))

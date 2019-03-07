@@ -125,7 +125,7 @@ File.write("#{questionnaire}.dot", dot)
 
 def find_or_create_node(i, nodes, rep)
   if (node = nodes.find {|n| n[:uri] == i.uri})
-    node[:questions] << rep.question unless node[:questions].include?(rep.question)
+    node[:questions] |= [rep.question]
   else
     nodes << {uri: i.uri,
               type: "ANON",

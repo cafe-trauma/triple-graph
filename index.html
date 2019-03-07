@@ -43,13 +43,22 @@ svg {
   margin-left: 2em;
   color: darkred;
 }
+#question_links {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: space-between;
+}
+#question_links a {
+  margin-right: .5em;
+}
 </style>
 </head>
 <body>
 <div id="dataset-picker"><h2 id="holding">Click another node to unhold</h2><h2 id="dataset-current">trauma center</h2></div>
 <svg width="500" height="500"></svg>
-<h3 id="show_uri"></h3>
-<h3 id="show_label"></h3>
+<p id="show_uri"></p>
+<div id="question_links"><span>Question Graphs: </span></div>
+<p id="show_label"></p>
 <button id="weights">Weights</button>
 <script src="https://d3js.org/d3.v4.min.js"></script>
 <script>
@@ -125,6 +134,17 @@ var force_graph = function(file_name){
             .on("mouseout", handleMouseOut);
 
     function handleMouseOver(d, i){
+      d3.select("#question_links")
+        .selectAll("a")
+        .remove();
+      d3.select("#question_links")
+        .selectAll("a")
+        .data(d.questions)
+        .enter()
+        .append("a")
+        .attr('target', '_')
+        .attr('href', function(d){ return "https://app.cafe-trauma.com/graphs/" + d + ".png"})
+        .text(function(d){ return d});
       document.getElementById("show_uri").innerText = "URI => " + d.uri + " - " + d.questions;
       document.getElementById("show_label").innerText = "Label => " + d.label + "\n#" + d.question + ": " + d.q_text;
       if(!hold){

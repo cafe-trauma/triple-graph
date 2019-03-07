@@ -145,7 +145,7 @@ var force_graph = function(file_name){
         .attr('target', '_')
         .attr('href', function(d){ return "https://app.cafe-trauma.com/graphs/" + d + ".png"})
         .text(function(d){ return d});
-      document.getElementById("show_uri").innerText = "URI => " + d.uri + " - " + d.questions;
+      document.getElementById("show_uri").innerText = "URI => " + d.uri;
       document.getElementById("show_label").innerText = "Label => " + d.label + "\n#" + d.question + ": " + d.q_text;
       if(!hold){
         d3.selectAll("circle")

@@ -1,29 +1,29 @@
 #!/usr/bin/env ruby
-require 'sequel'
-require 'pp'
-require 'linkeddata'
-require 'json'
+require "sequel"
+require "pp"
+require "linkeddata"
+require "json"
 
-@graph = RDF::Repository.load('merged.owl')
-DB = Sequel.connect('postgres://localhost/cafe')
+@graph = RDF::Repository.load("merged.owl")
+DB = Sequel.connect("postgres://localhost/cafe")
 
 questionnaire = ARGV[0] unless ARGV.empty?
-questionnaire ||= 'center'
+questionnaire ||= "center"
 
 def find_label(uri, graph)
-  solution = RDF::Query.execute(graph) do
+  solution = RDF::Query.execute(graph) {
     pattern [RDF::URI.new(uri), RDF::RDFS.label, :name]
-  end
+  }
 
   return solution.first[:name] unless solution.empty?
-  return uri
+  uri
 end
 
 class Representation
   attr_reader :question, :option, :question_text
   def initialize(question_id, question_text)
     @question = question_id
-    @question_text = question_text.scan(/([^{]+){([^|]+)|[^}]+}(.+)/).join()
+    @question_text = question_text.scan(/([^{]+){([^|]+)|[^}]+}(.+)/).join
   end
 end
 
@@ -41,7 +41,7 @@ class Instance
   end
 
   def print_box
-    %Q("#{@uri}" [shape=box, label="#{@uri}\\n#{@label}"])
+    %("#{@uri}" [shape=box, label="#{@uri}\\n#{@label}"])
   end
 end
 
@@ -69,33 +69,31 @@ class Statement
   end
 
   def print
-    %Q("#{@subject.print}" -> "#{@object.print}" [label="#{@p_label}"])
+    %("#{@subject.print}" -> "#{@object.print}" [label="#{@p_label}"])
   end
 end
-
 
 @prefixes = DB[:questionnaire_rdfprefix].as_hash(:short, :full)
 
 def get_uri(shortened, qid)
-  prefix, uri = shortened.split(':')
-  return "#{@prefixes[prefix]}#{uri}" unless prefix == '_'
-  return "#{qid}/#{uri}"
+  prefix, uri = shortened.split(":")
+  return "#{@prefixes[prefix]}#{uri}" unless prefix == "_"
+  "#{qid}/#{uri}"
 end
 
-representations = []
 @instances = {}
 @statements = []
 
-query = <<SQL
-select subject, predicate, obj, question_id, text, choice_id from questionnaire_statement
-join questionnaire_question on question_id = questionnaire_question.id
-join questionnaire_category on category_id = questionnaire_category.id
-where questionnaire = '#{questionnaire}'
+query = <<~SQL
+  select subject, predicate, obj, question_id, text, choice_id from questionnaire_statement
+  join questionnaire_question on question_id = questionnaire_question.id
+  join questionnaire_category on category_id = questionnaire_category.id
+  where questionnaire = '#{questionnaire}'
 SQL
 
 db_statements = DB[query].to_hash_groups(:question_id)
 db_statements.each do |question, statements|
-  #next unless ARGV.include?(question.to_s)
+  # next unless ARGV.include?(question.to_s)
   rep = Representation.new(question, statements.first[:text])
   statements.select {|s| s[:predicate] == "rdf:type" }.each do |instance|
     uri = get_uri(instance[:subject], question)
@@ -114,42 +112,42 @@ db_statements.each do |question, statements|
   end
 end
 
-dot = <<EOS
-digraph g {
-#{@instances.values.map{|i| i.print_box}.join("\n")}
-node [shape=diamond]
-graph [splines=true, nodesep=.5, ranksep=0, overlap=false]
-#{@statements.map{|s| s.print}.join("\n")}
-}
+dot = <<~EOS
+  digraph g {
+    #{@instances.values.map {|i| i.print_box}.join("\n")}
+    node [shape=diamond]
+    graph [splines=true, nodesep=.5, ranksep=0, overlap=false]
+    #{@statements.map {|s| s.print}.join("\n")}
+  }
 EOS
 
 File.write("#{questionnaire}.dot", dot)
 
 def find_or_create_node(i, nodes, rep)
-  if n = nodes.find {|n| n[:uri] == i.uri}
-    n[:questions] << rep.question unless n[:questions].include?(rep.question)
+  if (node = nodes.find {|n| n[:uri] == i.uri})
+    node[:questions] << rep.question unless node[:questions].include?(rep.question)
   else
-    nodes << {:uri => i.uri,
-              :type => "ANON",
-              :question => rep.question,
-              :questions => [rep.question],
-              :q_text => rep.question_text}
+    nodes << {uri: i.uri,
+              type: "ANON",
+              question: rep.question,
+              questions: [rep.question],
+              q_text: rep.question_text,}
   end
-  return i.uri
+  i.uri
 end
 
 json = {}
 json["nodes"] = []
 json["links"] = []
 @instances.each do |k, v|
-  json["nodes"] << {:uri => k,
-                    :type => "INSTANCE",
-                    :label => v.label,
-                    :questions => []}
+  json["nodes"] << {uri: k,
+                    type: "INSTANCE",
+                    label: v.label,
+                    questions: [],}
 end
 @statements.each do |s|
-  json["links"] << {:source => find_or_create_node(s.subject, json["nodes"], s.representation),
-                    :target => find_or_create_node(s.object, json["nodes"], s.representation),
-                    :type => s.choice ? "B" : "A"}
+  json["links"] << {source: find_or_create_node(s.subject, json["nodes"], s.representation),
+                    target: find_or_create_node(s.object, json["nodes"], s.representation),
+                    type: s.choice ? "B" : "A",}
 end
 File.write("#{questionnaire}.json", JSON.generate(json))

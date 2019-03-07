@@ -99,7 +99,7 @@ var force_graph = function(file_name){
 
     function handleMouseOver(d, i){
       document.getElementById("show_uri").innerText = "URI => " + d.uri;
-      document.getElementById("show_label").innerText = "Label => " + d.label;
+      document.getElementById("show_label").innerText = "Label => " + d.label + "\n#" + d.question + ": " + d.q_text;
       d3.select(this).attr("r", radius * 2);
     }
 

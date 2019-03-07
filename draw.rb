@@ -126,8 +126,8 @@ EOS
 File.write("#{questionnaire}.dot", dot)
 
 def find_or_create_node(i, nodes, rep)
-  if index = nodes.index {|n| n[:uri] == i.uri}
-    nodes[index][:questions] << rep.question unless nodes[index][:questions].include?(rep.question)
+  if n = nodes.find {|n| n[:uri] == i.uri}
+    n[:questions] << rep.question unless n[:questions].include?(rep.question)
   else
     nodes << {:uri => i.uri,
               :type => "ANON",

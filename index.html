@@ -9,13 +9,18 @@
 }
 
 .nodes circle {
-  stroke: black	;
+  stroke: black;
   stroke-width: 0px;
+}
+
+.nodes circle.highlight {
+  stroke: black;
+  stroke-width: 5px;
 }
 
 svg {
   width: 99vw;
-  height: 85vh;
+  height: 80vh;
 }
 
 .dataset-button {
@@ -32,17 +37,25 @@ svg {
 #dataset-current {
   text-transform: capitalize;
 }
+#holding {
+  display: none;
+  order: 99;
+  margin-left: 2em;
+  color: darkred;
+}
 </style>
 </head>
 <body>
-<div id="dataset-picker"><h2 id="dataset-current">trauma center</h2></div>
+<div id="dataset-picker"><h2 id="holding">Click another node to unhold</h2><h2 id="dataset-current">trauma center</h2></div>
 <svg width="500" height="500"></svg>
 <h3 id="show_uri"></h3>
 <h3 id="show_label"></h3>
+<button id="weights">Weights</button>
 <script src="https://d3js.org/d3.v4.min.js"></script>
 <script>
 var force_graph = function(file_name){
   d3.json(file_name, function(error, graph){
+    var hold = false;
     //create somewhere to put the force directed graph
     var svg = d3.select("svg"),
         width = +svg.attr("width"),
@@ -85,6 +98,12 @@ var force_graph = function(file_name){
         .style("stroke", linkColour);
 
 
+    d3.select("#weights")
+          .on("click", function(){
+            d3.selectAll("circle")
+              .attr("r", function(d){ return radius * d.questions.length * .2});
+          });
+
     //draw circles for the nodes
     var node = g.append("g")
             .attr("class", "nodes")
@@ -95,16 +114,38 @@ var force_graph = function(file_name){
             .attr("r", radius)
             .attr("fill", circleColour)
             .on("mouseover", handleMouseOver)
+            .on("click", function(){
+              hold = !hold;
+              if(hold){
+                d3.select("#holding").style("display", "inherit");
+              } else {
+                d3.select("#holding").style("display", "none");
+              }
+            })
             .on("mouseout", handleMouseOut);
 
     function handleMouseOver(d, i){
-      document.getElementById("show_uri").innerText = "URI => " + d.uri;
+      document.getElementById("show_uri").innerText = "URI => " + d.uri + " - " + d.questions;
       document.getElementById("show_label").innerText = "Label => " + d.label + "\n#" + d.question + ": " + d.q_text;
+      if(!hold){
+        d3.selectAll("circle")
+          .filter(function(dd) { return dd.label == d.label })
+          .attr("r", radius * 1.2)
+          .attr("class", "highlight");
+      }
       d3.select(this).attr("r", radius * 2);
     }
 
     function handleMouseOut(d, i){
       d3.select(this).attr("r", radius);
+      if(hold){
+        d3.select(this).attr("r", radius * 1.2);
+      }
+      if(!hold){
+        d3.selectAll("circle")
+          .attr("r", radius)
+          .attr("class", "");
+      }
     }
 
     //add drag capabilities

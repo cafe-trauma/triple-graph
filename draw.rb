@@ -126,10 +126,13 @@ EOS
 File.write("#{questionnaire}.dot", dot)
 
 def find_or_create_node(i, nodes, rep)
-  unless nodes.index {|n| n[:uri] == i.uri} then
+  if index = nodes.index {|n| n[:uri] == i.uri}
+    nodes[index][:questions] << rep.question unless nodes[index][:questions].include?(rep.question)
+  else
     nodes << {:uri => i.uri,
               :type => "ANON",
               :question => rep.question,
+              :questions => [rep.question],
               :q_text => rep.question_text}
   end
   return i.uri
@@ -141,7 +144,8 @@ json["links"] = []
 @instances.each do |k, v|
   json["nodes"] << {:uri => k,
                     :type => "INSTANCE",
-                    :label => v.label}
+                    :label => v.label,
+                    :questions => []}
 end
 @statements.each do |s|
   json["links"] << {:source => find_or_create_node(s.subject, json["nodes"], s.representation),

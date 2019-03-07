@@ -136,18 +136,17 @@ def find_or_create_node(i, nodes, rep)
   i.uri
 end
 
-json = {}
-json["nodes"] = []
-json["links"] = []
+nodes = []
+links = []
 @instances.each do |k, v|
-  json["nodes"] << {uri: k,
-                    type: "INSTANCE",
-                    label: v.label,
-                    questions: [],}
+  nodes << {uri: k,
+            type: "INSTANCE",
+            label: v.label,
+            questions: [],}
 end
 @statements.each do |s|
-  json["links"] << {source: find_or_create_node(s.subject, json["nodes"], s.representation),
-                    target: find_or_create_node(s.object, json["nodes"], s.representation),
-                    type: s.choice ? "B" : "A",}
+  links << {source: find_or_create_node(s.subject, nodes, s.representation),
+            target: find_or_create_node(s.object, nodes, s.representation),
+            type: s.choice ? "B" : "A",}
 end
-File.write("#{questionnaire}.json", JSON.generate(json))
+File.write("#{questionnaire}.json", JSON.generate({nodes: nodes, links: links}))
